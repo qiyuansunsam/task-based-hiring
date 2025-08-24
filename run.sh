@@ -2,12 +2,12 @@
 
 # SkillsFoundry Run Script
 
-echo "🚀 Starting SkillsFoundry..."
+echo "Starting SkillsFoundry..."
 
 # Function to cleanup background processes
 cleanup() {
     echo
-    echo "🛑 Shutting down servers..."
+    echo "Shutting down servers..."
     if [ ! -z "$BACKEND_PID" ]; then
         kill $BACKEND_PID 2>/dev/null || true
     fi
@@ -21,7 +21,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Start backend
-echo "🐍 Starting backend server..."
+echo "Starting backend server..."
 cd backend
 source venv/bin/activate
 python app.py &
@@ -32,14 +32,14 @@ cd ..
 sleep 3
 
 # Start frontend
-echo "⚛️  Starting frontend server..."
+echo "Starting frontend server..."
 cd frontend
 npm run dev &
 FRONTEND_PID=$!
 cd ..
 
 echo
-echo "✅ SkillsFoundry is running!"
+echo "SkillsFoundry is running!"
 echo "   Frontend: http://localhost:5173"
 echo "   Backend:  http://localhost:5000"
 echo
