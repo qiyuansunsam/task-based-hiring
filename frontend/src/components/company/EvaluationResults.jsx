@@ -126,43 +126,96 @@ const EvaluationResults = ({ taskId, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {submission.feedback && (
+                {/* Feedback Section - with better error handling */}
+                {submission.feedback && submission.feedback.trim() !== '' && (
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-zinc-300 mb-2">Feedback:</h4>
-                    <p className="text-zinc-400 bg-zinc-800 rounded p-3">{submission.feedback}</p>
+                    <div className="text-zinc-400 bg-zinc-800 rounded p-3 whitespace-pre-wrap">
+                      {submission.feedback}
+                    </div>
                   </div>
                 )}
 
-                {submission.pros_cons && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-green-400 mb-2 flex items-center">
-                        <ThumbsUp className="w-4 h-4 mr-1" />
-                        Strengths
-                      </h4>
-                      <ul className="space-y-1">
-                        {submission.pros_cons.pros?.map((pro, idx) => (
-                          <li key={idx} className="text-sm text-zinc-400 flex items-start">
-                            <span className="text-green-400 mr-2">•</span>
-                            {pro}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-red-400 mb-2 flex items-center">
-                        <ThumbsDown className="w-4 h-4 mr-1" />
-                        Areas for Improvement
-                      </h4>
-                      <ul className="space-y-1">
-                        {submission.pros_cons.cons?.map((con, idx) => (
-                          <li key={idx} className="text-sm text-zinc-400 flex items-start">
-                            <span className="text-red-400 mr-2">•</span>
-                            {con}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                {/* Pros and Cons Section - with robust parsing */}
+                {(() => {
+                  let prosConsData = null;
+                  
+                  // Handle different data formats
+                  if (submission.pros_cons) {
+                    if (typeof submission.pros_cons === 'string') {
+                      try {
+                        prosConsData = JSON.parse(submission.pros_cons);
+                      } catch (e) {
+                        console.warn('Failed to parse pros_cons JSON:', e);
+                        prosConsData = null;
+                      }
+                    } else if (typeof submission.pros_cons === 'object') {
+                      prosConsData = submission.pros_cons;
+                    }
+                  }
+
+                  // Only render if we have valid data
+                  if (prosConsData && (
+                    (prosConsData.pros && Array.isArray(prosConsData.pros) && prosConsData.pros.length > 0) ||
+                    (prosConsData.cons && Array.isArray(prosConsData.cons) && prosConsData.cons.length > 0)
+                  )) {
+                    return (
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        {/* Strengths */}
+                        {prosConsData.pros && Array.isArray(prosConsData.pros) && prosConsData.pros.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-green-400 mb-2 flex items-center">
+                              <ThumbsUp className="w-4 h-4 mr-1" />
+                              Strengths
+                            </h4>
+                            <ul className="space-y-1">
+                              {prosConsData.pros.map((pro, idx) => (
+                                <li key={idx} className="text-sm text-zinc-400 flex items-start">
+                                  <span className="text-green-400 mr-2 flex-shrink-0">•</span>
+                                  <span>{pro}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Areas for Improvement */}
+                        {prosConsData.cons && Array.isArray(prosConsData.cons) && prosConsData.cons.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-red-400 mb-2 flex items-center">
+                              <ThumbsDown className="w-4 h-4 mr-1" />
+                              Areas for Improvement
+                            </h4>
+                            <ul className="space-y-1">
+                              {prosConsData.cons.map((con, idx) => (
+                                <li key={idx} className="text-sm text-zinc-400 flex items-start">
+                                  <span className="text-red-400 mr-2 flex-shrink-0">•</span>
+                                  <span>{con}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  return null;
+                })()}
+
+                {/* Debug info for development - remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mb-4 p-2 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
+                    <details>
+                      <summary className="text-yellow-400 cursor-pointer">Debug Info</summary>
+                      <pre className="mt-2 text-yellow-300 overflow-auto">
+                        {JSON.stringify({
+                          feedback: submission.feedback,
+                          pros_cons: submission.pros_cons,
+                          pros_cons_type: typeof submission.pros_cons
+                        }, null, 2)}
+                      </pre>
+                    </details>
                   </div>
                 )}
 

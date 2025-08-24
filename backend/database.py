@@ -389,8 +389,26 @@ class Database:
         submissions = []
         for row in rows:
             submission = dict(row)
-            submission['key_frames'] = json.loads(submission['key_frames']) if submission['key_frames'] else []
-            submission['pros_cons'] = json.loads(submission['pros_cons']) if submission['pros_cons'] else None
+            
+            # Handle key_frames JSON parsing
+            try:
+                submission['key_frames'] = json.loads(submission['key_frames']) if submission['key_frames'] else []
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"Error parsing key_frames for submission {submission['id']}: {e}")
+                submission['key_frames'] = []
+            
+            # Handle pros_cons JSON parsing with better error handling
+            try:
+                if submission['pros_cons']:
+                    if isinstance(submission['pros_cons'], str):
+                        submission['pros_cons'] = json.loads(submission['pros_cons'])
+                    # If it's already a dict/object, keep it as is
+                else:
+                    submission['pros_cons'] = None
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"Error parsing pros_cons for submission {submission['id']}: {e}")
+                submission['pros_cons'] = None
+            
             submissions.append(submission)
         
         conn.close()

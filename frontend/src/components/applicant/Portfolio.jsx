@@ -53,32 +53,65 @@ const Portfolio = ({ portfolio }) => {
                     <p className="text-zinc-300">{item.feedback}</p>
                   </div>
                   
-                  {item.pros_cons && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <h5 className="font-medium text-green-400 mb-2">Pros</h5>
-                        <ul className="space-y-1">
-                          {item.pros_cons.pros?.map((pro, i) => (
-                            <li key={i} className="text-sm text-zinc-400 flex items-start">
-                              <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                              {pro}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-red-400 mb-2">Areas for Improvement</h5>
-                        <ul className="space-y-1">
-                          {item.pros_cons.cons?.map((con, i) => (
-                            <li key={i} className="text-sm text-zinc-400 flex items-start">
-                              <X className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-                              {con}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
+                  {(() => {
+                    let prosConsData = null;
+                    
+                    // Handle different data formats for pros_cons
+                    if (item.pros_cons) {
+                      if (typeof item.pros_cons === 'string') {
+                        try {
+                          prosConsData = JSON.parse(item.pros_cons);
+                        } catch (e) {
+                          console.warn('Failed to parse pros_cons JSON in portfolio:', e);
+                          prosConsData = null;
+                        }
+                      } else if (typeof item.pros_cons === 'object') {
+                        prosConsData = item.pros_cons;
+                      }
+                    }
+
+                    // Only render if we have valid data
+                    if (prosConsData && (
+                      (prosConsData.pros && Array.isArray(prosConsData.pros) && prosConsData.pros.length > 0) ||
+                      (prosConsData.cons && Array.isArray(prosConsData.cons) && prosConsData.cons.length > 0)
+                    )) {
+                      return (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {/* Pros */}
+                          {prosConsData.pros && Array.isArray(prosConsData.pros) && prosConsData.pros.length > 0 && (
+                            <div>
+                              <h5 className="font-medium text-green-400 mb-2">Pros</h5>
+                              <ul className="space-y-1">
+                                {prosConsData.pros.map((pro, i) => (
+                                  <li key={i} className="text-sm text-zinc-400 flex items-start">
+                                    <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                                    <span>{pro}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {/* Cons */}
+                          {prosConsData.cons && Array.isArray(prosConsData.cons) && prosConsData.cons.length > 0 && (
+                            <div>
+                              <h5 className="font-medium text-red-400 mb-2">Areas for Improvement</h5>
+                              <ul className="space-y-1">
+                                {prosConsData.cons.map((con, i) => (
+                                  <li key={i} className="text-sm text-zinc-400 flex items-start">
+                                    <X className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                                    <span>{con}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                   
                   <div className="text-sm text-zinc-500">
                     Submitted: {new Date(item.submitted_at).toLocaleDateString()}

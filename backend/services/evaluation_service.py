@@ -66,12 +66,12 @@ class EvaluationService:
                 comparison = self._compare_submissions(sub_a, sub_b, task_desc, criteria, llm_service)
                 
                 # Store feedback for both submissions (only if not already set)
-                if 'feedback' not in sub_a:
-                    sub_a['feedback'] = comparison['feedback_a']
-                    sub_a['pros_cons'] = comparison['pros_cons_a']
-                if 'feedback' not in sub_b:
-                    sub_b['feedback'] = comparison['feedback_b']
-                    sub_b['pros_cons'] = comparison['pros_cons_b']
+                if 'feedback' not in sub_a or sub_a['feedback'] is None:
+                    sub_a['feedback'] = comparison.get('feedback_a', '')
+                    sub_a['pros_cons'] = comparison.get('pros_cons_a', {'pros': [], 'cons': []})
+                if 'feedback' not in sub_b or sub_b['feedback'] is None:
+                    sub_b['feedback'] = comparison.get('feedback_b', '')
+                    sub_b['pros_cons'] = comparison.get('pros_cons_b', {'pros': [], 'cons': []})
                 
                 # Update win matrix
                 if comparison['winner'] == 'A':
