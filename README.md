@@ -1,10 +1,10 @@
-# SkillsFoundry 🚀
+# SkillsFoundry
 
 **AI-Powered Skills Assessment Platform**
 
 SkillsFoundry is an innovative platform that uses AI to evaluate technical skills through practical task submissions. Companies can create coding challenges, and applicants submit video demonstrations of their solutions, which are then evaluated using advanced AI analysis.
 
-## ✨ Features
+## Features
 
 ### For Companies
 - **Task Creation**: Design custom coding challenges and technical assessments
@@ -26,7 +26,7 @@ SkillsFoundry is an innovative platform that uses AI to evaluate technical skill
 - **Framework Recognition**: Distinguishes between React/Vue/Angular vs vanilla JavaScript implementations
 - **Architecture Assessment**: Evaluates technical complexity and implementation sophistication
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 - **Python 3.8+** with Flask
@@ -42,7 +42,7 @@ SkillsFoundry is an innovative platform that uses AI to evaluate technical skill
 - **Lucide React** for icons
 - **Responsive design** for all devices
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: Automated Setup (Recommended)
 
@@ -121,7 +121,7 @@ If you prefer to set up manually, follow these steps:
    npm run dev
    ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -146,7 +146,7 @@ To get a Claude API key:
 4. Generate a new API key
 5. Add it to your backend `.env` file
 
-## 🎯 Usage
+## Usage
 
 ### For Companies
 
@@ -176,7 +176,7 @@ The platform includes several demo accounts for testing:
   - `gemini@test.com` (password: `123`)
   - `deepseek@test.com` (password: `123`)
 
-## 🧠 AI Evaluation System
+## AI Evaluation System
 
 ### Advanced Features
 
