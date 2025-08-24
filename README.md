@@ -211,7 +211,7 @@ Submissions are evaluated with this priority:
 - **Consistent Results**: Eliminates order-dependent ranking issues
 - **Percentile Scores**: Clear percentile rankings from 0-100%
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 skillsfoundry/
@@ -241,10 +241,11 @@ skillsfoundry/
 │   ├── package.json
 │   └── vite.config.js
 ├── setup.sh                # Automated setup script
+├── run.sh                  # Run script to start servers
 └── README.md               # This file
 ```
 
-## 🔍 Testing
+## Testing
 
 ### Test the Evaluation System
 
@@ -259,7 +260,7 @@ This tests:
 - Frame extraction improvements
 - Evaluation prompt enhancements
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
