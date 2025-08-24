@@ -1,6 +1,17 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
 class ApiService {
+  getFrameUrl(framePath) {
+    // Extract the relative path from the full path
+    // Frame paths are stored as full paths but need to be served relative to frames folder
+    if (framePath.includes('/')) {
+      const pathParts = framePath.split('/');
+      // Get the last two parts: submission_id/frame_xxxx.jpg
+      const relativePath = pathParts.slice(-2).join('/');
+      return `${API_BASE_URL}/frames/${relativePath}`;
+    }
+    return `${API_BASE_URL}/frames/${framePath}`;
+  }
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const config = {
@@ -34,7 +45,7 @@ class ApiService {
     });
   }
 
-  // Task Management
+  // Task Management (Legacy)
   async getTasks(status = 'active') {
     return this.request(`/tasks?status=${status}`);
   }
@@ -66,6 +77,45 @@ class ApiService {
     });
   }
 
+  // Job Posting Management (New Pipeline)
+  async getPostings(status = 'active') {
+    return this.request(`/postings?status=${status}`);
+  }
+
+  async createPosting(postingData) {
+    return this.request('/postings', {
+      method: 'POST',
+      body: JSON.stringify(postingData),
+    });
+  }
+
+  async getPosting(postingId) {
+    return this.request(`/postings/${postingId}`);
+  }
+
+  async getCompanyPostings(email) {
+    return this.request(`/company-postings/${email}`);
+  }
+
+  async deletePosting(postingId) {
+    return this.request(`/postings/${postingId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async processExampleTask(taskData) {
+    return this.request('/process-example-task', {
+      method: 'POST',
+      body: JSON.stringify(taskData),
+    });
+  }
+
+  async clearAllPostings() {
+    return this.request('/postings/clear-all', {
+      method: 'DELETE',
+    });
+  }
+
   // Submissions
   async createSubmission(formData) {
     return this.request('/submissions', {
@@ -81,6 +131,10 @@ class ApiService {
 
   async getUserSubmissions(email) {
     return this.request(`/user-submissions/${email}`);
+  }
+
+  async getUserSubmissionStatus(email) {
+    return this.request(`/user-submission-status/${email}`);
   }
 
   // Evaluation

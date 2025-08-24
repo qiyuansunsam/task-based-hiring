@@ -18,13 +18,28 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Create tasks table
+        # Create tasks table (legacy)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT,
                 criteria TEXT,
+                created_at TEXT,
+                deadline TEXT,
+                status TEXT DEFAULT 'active',
+                company TEXT
+            )
+        ''')
+        
+        # Create postings table (new job posting pipeline)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS postings (
+                id TEXT PRIMARY KEY,
+                job_title TEXT NOT NULL,
+                job_description TEXT NOT NULL,
+                example_task TEXT,
+                processed_criteria TEXT,
                 created_at TEXT,
                 deadline TEXT,
                 status TEXT DEFAULT 'active',
@@ -47,6 +62,7 @@ class Database:
                 percentile REAL,
                 feedback TEXT,
                 pros_cons TEXT,
+                status TEXT DEFAULT 'pending',
                 FOREIGN KEY (task_id) REFERENCES tasks (id)
             )
         ''')
@@ -64,6 +80,9 @@ class Database:
         
         conn.commit()
         conn.close()
+        
+        # Run migrations for existing databases
+        self.migrate_database()
         
         # Initialize default users if they don't exist
         self.init_default_users()
@@ -116,6 +135,27 @@ class Database:
         conn.commit()
         conn.close()
         return task_data
+
+    def migrate_database(self):
+        """Add any missing columns to existing database"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Check if status column exists in submissions table
+            cursor.execute("PRAGMA table_info(submissions)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'status' not in columns:
+                print("Adding status column to submissions table...")
+                cursor.execute("ALTER TABLE submissions ADD COLUMN status TEXT DEFAULT 'pending'")
+                conn.commit()
+                print("Status column added successfully")
+                
+        except Exception as e:
+            print(f"Migration error: {e}")
+        finally:
+            conn.close()
     
     def get_tasks(self, status='active'):
         """Get all tasks with given status"""
@@ -189,6 +229,125 @@ class Database:
         
         return submissions  # Return submissions for file cleanup
     
+    # Posting operations (new job posting pipeline)
+    def create_posting(self, posting_data):
+        """Create a new job posting"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO postings (id, job_title, job_description, example_task, processed_criteria, 
+                                created_at, deadline, status, company)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            posting_data['id'],
+            posting_data['job_title'],
+            posting_data['job_description'],
+            posting_data.get('example_task'),
+            json.dumps(posting_data['processed_criteria']) if posting_data.get('processed_criteria') else None,
+            posting_data['created_at'],
+            posting_data.get('deadline'),
+            posting_data.get('status', 'active'),
+            posting_data['company']
+        ))
+        
+        conn.commit()
+        conn.close()
+        return posting_data
+    
+    def get_postings(self, status='active'):
+        """Get all postings with given status"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM postings WHERE status = ?', (status,))
+        rows = cursor.fetchall()
+        
+        postings = []
+        for row in rows:
+            posting = dict(row)
+            posting['processed_criteria'] = json.loads(posting['processed_criteria']) if posting['processed_criteria'] else []
+            # Get submission count for this posting (using posting_id as task_id for compatibility)
+            cursor.execute('SELECT COUNT(*) FROM submissions WHERE task_id = ?', (posting['id'],))
+            submission_count = cursor.fetchone()[0]
+            posting['submissions'] = [f"submission_{i}" for i in range(submission_count)]
+            postings.append(posting)
+        
+        conn.close()
+        return postings
+    
+    def get_posting(self, posting_id):
+        """Get a specific posting by ID"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM postings WHERE id = ?', (posting_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            posting = dict(row)
+            posting['processed_criteria'] = json.loads(posting['processed_criteria']) if posting['processed_criteria'] else []
+            # Get submission IDs for this posting
+            cursor.execute('SELECT id FROM submissions WHERE task_id = ?', (posting_id,))
+            submission_ids = [r[0] for r in cursor.fetchall()]
+            posting['submissions'] = submission_ids
+            conn.close()
+            return posting
+        
+        conn.close()
+        return None
+    
+    def delete_posting(self, posting_id):
+        """Delete a posting and all related submissions"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Get all submissions for this posting first (for file cleanup)
+        cursor.execute('SELECT * FROM submissions WHERE task_id = ?', (posting_id,))
+        submissions = [dict(row) for row in cursor.fetchall()]
+        
+        # Delete submissions
+        cursor.execute('DELETE FROM submissions WHERE task_id = ?', (posting_id,))
+        
+        # Delete posting
+        cursor.execute('DELETE FROM postings WHERE id = ?', (posting_id,))
+        
+        # Update user portfolios to remove entries for this posting
+        cursor.execute('SELECT email, portfolio FROM users WHERE type = "applicant"')
+        users = cursor.fetchall()
+        
+        for user in users:
+            portfolio = json.loads(user['portfolio']) if user['portfolio'] else []
+            updated_portfolio = [entry for entry in portfolio if entry.get('task_id') != posting_id]
+            cursor.execute('UPDATE users SET portfolio = ? WHERE email = ?', 
+                         (json.dumps(updated_portfolio), user['email']))
+        
+        conn.commit()
+        conn.close()
+        
+        return submissions  # Return submissions for file cleanup
+    
+    def get_company_postings(self, company_email):
+        """Get all postings by a specific company"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM postings WHERE company = ? AND status = ?', (company_email, 'active'))
+        rows = cursor.fetchall()
+        
+        postings = []
+        for row in rows:
+            posting = dict(row)
+            posting['processed_criteria'] = json.loads(posting['processed_criteria']) if posting['processed_criteria'] else []
+            # Get submission count for this posting (using posting_id as task_id for compatibility)
+            cursor.execute('SELECT COUNT(*) FROM submissions WHERE task_id = ?', (posting['id'],))
+            submission_count = cursor.fetchone()[0]
+            posting['submissions'] = [f"submission_{i}" for i in range(submission_count)]
+            postings.append(posting)
+        
+        conn.close()
+        return postings
+    
     # Submission operations
     def create_submission(self, submission_data):
         """Create a new submission"""
@@ -197,8 +356,8 @@ class Database:
         
         cursor.execute('''
             INSERT INTO submissions (id, task_id, applicant_email, applicant_name, video_path, 
-                                   code_path, key_frames, submitted_at, rank, percentile, feedback, pros_cons)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   code_path, key_frames, submitted_at, rank, percentile, feedback, pros_cons, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             submission_data['id'],
             submission_data['task_id'],
@@ -211,7 +370,8 @@ class Database:
             submission_data.get('rank'),
             submission_data.get('percentile'),
             submission_data.get('feedback'),
-            submission_data.get('pros_cons')
+            submission_data.get('pros_cons'),
+            submission_data.get('status', 'pending')
         ))
         
         conn.commit()
@@ -253,6 +413,55 @@ class Database:
         
         conn.close()
         return submissions
+    
+    def get_user_submission_status(self, email):
+        """Get submission status for all tasks/postings by a user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Try the new query with status column
+            cursor.execute('''
+                SELECT task_id, status, submitted_at, rank, percentile 
+                FROM submissions 
+                WHERE applicant_email = ?
+                ORDER BY submitted_at DESC
+            ''', (email,))
+            rows = cursor.fetchall()
+            
+            submission_status = {}
+            for row in rows:
+                submission_status[row['task_id']] = {
+                    'status': row.get('status', 'completed'),  # Default to completed for old submissions
+                    'submitted_at': row['submitted_at'],
+                    'rank': row['rank'],
+                    'percentile': row['percentile']
+                }
+                
+        except Exception as e:
+            print(f"Status column not found, using fallback query: {e}")
+            # Fallback for databases without status column
+            cursor.execute('''
+                SELECT task_id, submitted_at, rank, percentile 
+                FROM submissions 
+                WHERE applicant_email = ?
+                ORDER BY submitted_at DESC
+            ''', (email,))
+            rows = cursor.fetchall()
+            
+            submission_status = {}
+            for row in rows:
+                # Determine status based on existing data
+                status = 'completed' if row['rank'] is not None else 'pending'
+                submission_status[row['task_id']] = {
+                    'status': status,
+                    'submitted_at': row['submitted_at'],
+                    'rank': row['rank'],
+                    'percentile': row['percentile']
+                }
+        
+        conn.close()
+        return submission_status
     
     def update_submission(self, submission_id, updates):
         """Update a submission with new data"""

@@ -2,13 +2,6 @@ import base64
 import os
 from typing import List, Dict, Any, Optional
 
-class BSTNode:
-    """Binary Search Tree Node for submission ranking"""
-    def __init__(self, submission: Dict):
-        self.submission = submission
-        self.left: Optional['BSTNode'] = None
-        self.right: Optional['BSTNode'] = None
-
 class EvaluationService:
     def __init__(self):
         self.comparison_cache = {}
@@ -17,7 +10,7 @@ class EvaluationService:
     def rank_submissions(self, submissions: List[Dict], task_description: str, 
                         criteria: List[str], llm_service, progress_callback=None) -> List[Dict]:
         """
-        Use BST-based sorting for guaranteed O(n log n) average complexity
+        Use tournament-style sorting for reliable ranking
         """
         if len(submissions) <= 1:
             if len(submissions) == 1:
@@ -25,12 +18,11 @@ class EvaluationService:
             return submissions
         
         self.progress_callback = progress_callback
-        self.current_submission = 0
         self.total_submissions = len(submissions)
         self.comparison_count = 0
         
-        # Build BST with LLM comparisons
-        ranked = self._bst_sort_submissions(submissions, task_description, criteria, llm_service)
+        # Use tournament sorting for more reliable results
+        ranked = self._tournament_sort_submissions(submissions, task_description, criteria, llm_service)
         
         # Assign percentiles based on ranking (best to worst)
         total = len(ranked)
@@ -44,73 +36,70 @@ class EvaluationService:
         
         return ranked
     
-    def _bst_sort_submissions(self, submissions: List[Dict], task_desc: str, 
-                             criteria: List[str], llm_service) -> List[Dict]:
+    def _tournament_sort_submissions(self, submissions: List[Dict], task_desc: str, 
+                                   criteria: List[str], llm_service) -> List[Dict]:
         """
-        Sort submissions using BST with LLM comparisons
+        Sort submissions using tournament-style comparisons for reliable ranking
         """
         if not submissions:
             return []
         
-        # Initialize BST with first submission
-        root = BSTNode(submissions[0])
-        if self.progress_callback:
-            self.progress_callback(f"Evaluating submission 1/{self.total_submissions}: {submissions[0]['applicant_name']}")
-        
-        # Insert remaining submissions into BST
-        for i, submission in enumerate(submissions[1:], 2):
-            self.current_submission = i
-            if self.progress_callback:
-                self.progress_callback(f"Evaluating submission {i}/{self.total_submissions}: {submission['applicant_name']}")
-            self._insert_into_bst(root, submission, task_desc, criteria, llm_service)
-        
-        # Perform in-order traversal to get sorted list (best to worst)
+        # Create a copy to avoid modifying original
+        remaining = submissions.copy()
         ranked = []
-        self._inorder_traversal_reverse(root, ranked)
+        
+        # Build win matrix to track head-to-head results
+        win_matrix = {}
+        for sub in submissions:
+            win_matrix[sub['id']] = {'wins': 0, 'total_comparisons': 0}
+        
+        # Perform round-robin comparisons to build reliable rankings
+        for i in range(len(remaining)):
+            for j in range(i + 1, len(remaining)):
+                sub_a = remaining[i]
+                sub_b = remaining[j]
+                
+                self.comparison_count += 1
+                if self.progress_callback:
+                    self.progress_callback(f"Comparing {sub_a['applicant_name']} vs {sub_b['applicant_name']} (Comparison {self.comparison_count})")
+                
+                comparison = self._compare_submissions(sub_a, sub_b, task_desc, criteria, llm_service)
+                
+                # Store feedback for both submissions (only if not already set)
+                if 'feedback' not in sub_a:
+                    sub_a['feedback'] = comparison['feedback_a']
+                    sub_a['pros_cons'] = comparison['pros_cons_a']
+                if 'feedback' not in sub_b:
+                    sub_b['feedback'] = comparison['feedback_b']
+                    sub_b['pros_cons'] = comparison['pros_cons_b']
+                
+                # Update win matrix
+                if comparison['winner'] == 'A':
+                    win_matrix[sub_a['id']]['wins'] += 1
+                else:
+                    win_matrix[sub_b['id']]['wins'] += 1
+                
+                win_matrix[sub_a['id']]['total_comparisons'] += 1
+                win_matrix[sub_b['id']]['total_comparisons'] += 1
+        
+        # Calculate win rates and sort by them
+        for sub in remaining:
+            total_comps = win_matrix[sub['id']]['total_comparisons']
+            if total_comps > 0:
+                win_rate = win_matrix[sub['id']]['wins'] / total_comps
+            else:
+                win_rate = 0.0
+            sub['_win_rate'] = win_rate
+        
+        # Sort by win rate (highest first)
+        ranked = sorted(remaining, key=lambda x: x['_win_rate'], reverse=True)
+        
+        # Clean up temporary win rate field
+        for sub in ranked:
+            if '_win_rate' in sub:
+                del sub['_win_rate']
         
         return ranked
-    
-    def _insert_into_bst(self, root: BSTNode, submission: Dict, task_desc: str, 
-                        criteria: List[str], llm_service):
-        """
-        Insert submission into BST based on LLM comparison
-        """
-        self.comparison_count += 1
-        
-        # Report progress for each comparison (API call)
-        if self.progress_callback:
-            self.progress_callback(f"Comparing {submission['applicant_name']} vs {root.submission['applicant_name']} (API call {self.comparison_count})")
-        
-        comparison = self._compare_submissions(submission, root.submission, task_desc, criteria, llm_service)
-        
-        # Store feedback for both submissions
-        submission['feedback'] = comparison['feedback_a']
-        submission['pros_cons'] = comparison['pros_cons_a']
-        root.submission['feedback'] = comparison['feedback_b']
-        root.submission['pros_cons'] = comparison['pros_cons_b']
-        
-        if comparison['winner'] == 'A':  # New submission is better
-            if root.right is None:
-                root.right = BSTNode(submission)
-            else:
-                self._insert_into_bst(root.right, submission, task_desc, criteria, llm_service)
-        else:  # Current root submission is better
-            if root.left is None:
-                root.left = BSTNode(submission)
-            else:
-                self._insert_into_bst(root.left, submission, task_desc, criteria, llm_service)
-    
-    def _inorder_traversal_reverse(self, node: BSTNode, result: List[Dict]):
-        """
-        Reverse in-order traversal to get submissions from best to worst
-        """
-        if node is not None:
-            # Visit right subtree first (better submissions)
-            self._inorder_traversal_reverse(node.right, result)
-            # Visit current node
-            result.append(node.submission)
-            # Visit left subtree (worse submissions)
-            self._inorder_traversal_reverse(node.left, result)
     
     def _compare_submissions(self, sub_a: Dict, sub_b: Dict, task_desc: str, 
                            criteria: List[str], llm_service) -> Dict:

@@ -47,7 +47,7 @@ const TaskSubmission = ({ task, isOpen, onClose }) => {
   if (!task) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={`Submit Solution for: ${task.title}`}>
+    <Modal isOpen={isOpen} onClose={handleClose} title={`Submit Solution for: ${task.title || task.job_title}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">

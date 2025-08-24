@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Star, ThumbsUp, ThumbsDown, User, Calendar } from 'lucide-react';
+import { Trophy, Star, ThumbsUp, ThumbsDown, User, Calendar, ChevronDown, ChevronUp, Image } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import apiService from '../../services/api';
@@ -7,6 +7,7 @@ import apiService from '../../services/api';
 const EvaluationResults = ({ taskId, isOpen, onClose }) => {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedSubmissions, setExpandedSubmissions] = useState(new Set());
 
   useEffect(() => {
     if (isOpen && taskId) {
@@ -42,6 +43,27 @@ const EvaluationResults = ({ taskId, isOpen, onClose }) => {
     return <span className="w-5 h-5 flex items-center justify-center text-zinc-400 font-bold">#{rank}</span>;
   };
 
+  const toggleSubmissionDetails = (submissionId) => {
+    setExpandedSubmissions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(submissionId)) {
+        newSet.delete(submissionId);
+      } else {
+        newSet.add(submissionId);
+      }
+      return newSet;
+    });
+  };
+
+  const getScreenshots = (submission) => {
+    if (!submission.key_frames || submission.key_frames.length === 0) {
+      return [];
+    }
+    
+    // Take first 3 screenshots
+    return submission.key_frames.slice(0, 3);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -74,14 +96,33 @@ const EvaluationResults = ({ taskId, isOpen, onClose }) => {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center space-x-2">
-                      <Star className="w-5 h-5 text-yellow-400" />
-                      <span className="text-xl font-bold text-white">
-                        {submission.percentile ? `${submission.percentile}%` : 'N/A'}
-                      </span>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <div className="flex items-center space-x-2">
+                        <Star className="w-5 h-5 text-yellow-400" />
+                        <span className="text-xl font-bold text-white">
+                          {submission.percentile ? `${submission.percentile}%` : 'N/A'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-400">Percentile</p>
                     </div>
-                    <p className="text-sm text-zinc-400">Percentile</p>
+                    <Button
+                      onClick={() => toggleSubmissionDetails(submission.id)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      {expandedSubmissions.has(submission.id) ? (
+                        <>
+                          <ChevronUp className="w-4 h-4 mr-1" />
+                          Hide Screenshots
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 mr-1" />
+                          Show Screenshots
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
 
@@ -122,6 +163,36 @@ const EvaluationResults = ({ taskId, isOpen, onClose }) => {
                         ))}
                       </ul>
                     </div>
+                  </div>
+                )}
+
+                {expandedSubmissions.has(submission.id) && (
+                  <div className="mt-4 pt-4 border-t border-zinc-800">
+                    <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
+                      <Image className="w-4 h-4 mr-2" />
+                      Video Screenshots
+                    </h4>
+                    {getScreenshots(submission).length > 0 ? (
+                      <div className="grid grid-cols-3 gap-4">
+                        {getScreenshots(submission).map((frame, idx) => (
+                          <div key={idx} className="aspect-video bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700">
+                            <img
+                              src={apiService.getFrameUrl(frame)}
+                              alt={`Screenshot ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzc0MTUxIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4=';
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-zinc-400">
+                        <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No screenshots available</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

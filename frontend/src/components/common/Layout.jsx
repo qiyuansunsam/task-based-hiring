@@ -12,7 +12,7 @@ const Layout = ({ children }) => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-white">
-                Task<span className="text-purple-500">Eval</span>
+                <span className="text-purple-500">Skills</span>Foundry
               </h1>
             </div>
             {user && (

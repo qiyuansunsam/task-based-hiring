@@ -30,9 +30,9 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-8">
           <h2 className="text-3xl font-bold text-white mb-2">
-            Welcome to Task<span className="text-purple-500">Eval</span>
+            Welcome to <span className="text-purple-500">SkillsFoundry</span>
           </h2>
-          <p className="text-zinc-400 mb-8">AI-Powered Task Evaluation Platform</p>
+          <p className="text-zinc-400 mb-8">AI-Powered Skills Assessment Platform</p>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input

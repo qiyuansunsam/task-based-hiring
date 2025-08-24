@@ -64,7 +64,7 @@ class LLMService:
     
     def _create_evaluation_prompt(self, task_desc: str, criteria: List[str], name_a: str, name_b: str) -> str:
         """
-        Create detailed evaluation prompt for Claude
+        Create detailed evaluation prompt for Claude with improved screenshot handling
         """
         criteria_text = "\n".join([f"- {criterion}" for criterion in criteria])
         
@@ -80,31 +80,95 @@ I will show you screenshots from two demo videos:
 - First images: Submission by {name_a}
 - Remaining images: Submission by {name_b}
 
-IMPORTANT EVALUATION GUIDELINES:
-- These are automatically generated screenshots from demo videos
-- Some screenshots may be transitioning frames or have visual artifacts - be lenient with these
-- Focus on the actual implementation quality, functionality, and user experience
-- Judge the application itself, not the screenshot quality
-- If a frame appears to be transitioning or has artifacts, focus on the clearer frames
-- Your goal is to determine which submission better meets the task requirements
+🚨 CRITICAL SCREENSHOT QUALITY ASSESSMENT:
+These are automatically extracted video frames that may have significant limitations:
 
-DESIGN EVALUATION PREFERENCES:
-- Prefer minimalistic, clean designs over overly colorful or cluttered interfaces
-- Reward clear sectioning and logical organization of content
-- Value clever layering and hierarchical structuring over flat layouts
-- Appreciate thoughtful use of whitespace and visual hierarchy
-- Favor functional design that enhances user experience over purely decorative elements
+SCREENSHOT QUALITY IS UNRELIABLE - FOCUS ON TECHNICAL EVIDENCE:
+- Screenshots may show loading states, blank screens, or transitional moments
+- Video compression artifacts may obscure actual functionality
+- Timing issues may miss key interactive moments or completed states
+- Poor frame selection may not represent the true quality of the work
+- Technical demos often look incomplete in static screenshots
+- A submission may APPEAR simpler but actually have MORE advanced features
 
-ADVANCED FEATURES TO REWARD:
-- Modal dialogs and popup cards that show sophisticated UI implementation
-- Multiple pages or views that demonstrate navigation and routing
-- Interactive elements like buttons, forms, dropdowns, tabs, or accordions
-- Evidence of user interaction and dynamic content updates
-- Smooth transitions and animations that enhance user experience
-- Complex layouts with multiple sections, sidebars, or organized content areas
-- Advanced UI components that show technical skill and attention to detail
+WHEN SCREENSHOTS ARE POOR/UNCLEAR - LOOK FOR TECHNICAL INDICATORS:
+- Give submissions the benefit of the doubt about functionality
+- Look for ANY evidence of advanced technical implementation
+- Prioritize technical complexity over visual presentation
+- Consider that advanced features may not be visible in static frames
+- Don't let poor screenshot timing mask superior technical implementation
 
-Please evaluate both submissions and determine which is better overall.
+🎯 INTERACTIVITY DETECTION GUIDELINES:
+Look for these visual cues that indicate interactive features:
+
+MOUSE MOVEMENT INDICATORS:
+- Cursor visible in screenshots (indicates active interaction)
+- Hover states on buttons, links, or interactive elements
+- Highlighted/selected items suggesting user interaction
+- Form fields with focus states or active cursors
+- Dropdown menus in open states
+- Modal dialogs or popups (suggest user-triggered actions)
+
+INTERACTION EVIDENCE:
+- Multiple different screens/views (suggests navigation)
+- Form submissions with validation messages
+- Dynamic content changes between frames
+- Loading states followed by populated content
+- Before/after states showing user actions
+- Interactive elements like sliders, toggles, or drag-and-drop
+
+TECHNICAL IMPLEMENTATION SIGNALS:
+- Modern UI frameworks (React, Vue, Angular components)
+- Responsive design elements and layouts
+- Professional styling and component libraries
+- Complex state management (forms, data, navigation)
+- API integration evidence (loading states, data fetching)
+
+🏗️ EVALUATION PRIORITIES (IN ORDER):
+1. **Technical Architecture** - Framework usage, complexity, modern practices
+2. **Functional Completeness** - Does it meet the task requirements?
+3. **Implementation Quality** - Code structure, best practices, scalability
+4. **User Experience** - Design, usability, polish (when visible)
+5. **Interactive Features** - Evidence of dynamic behavior and user interaction
+
+⚠️ SCREENSHOT LIMITATIONS - BE LENIENT:
+- Don't heavily penalize for blank screens or loading states
+- Poor screenshot quality doesn't reflect implementation quality
+- Static frames can't capture dynamic interactions or animations
+- Video compression may hide subtle UI details and interactions
+- Focus on architectural and technical evidence over visual polish
+
+🔍 ADVANCED FEATURE DETECTION - LOOK FOR THESE INDICATORS:
+
+PREMIUM TECHNICAL FEATURES (HEAVILY REWARD):
+- **Download/Export Functionality**: Download buttons, file export, PDF generation, save features
+- **Media Integration**: Image galleries, video players, custom media uploads, rich content
+- **Pagination/Navigation**: Page numbers, next/prev buttons, infinite scroll, complex routing
+- **State Management**: Loading states, form validation, dynamic content updates, real-time changes
+- **Interactive Demos**: Live previews, interactive elements, dynamic demonstrations
+- **Data Handling**: Search functionality, filtering, sorting, CRUD operations
+- **Advanced UI Components**: Modals, dropdowns, tooltips, accordions, tabs, carousels
+
+ARCHITECTURAL COMPLEXITY INDICATORS:
+- Multiple distinct pages/views (not just single page)
+- Complex navigation systems and routing
+- Form handling with validation and feedback
+- Dynamic content loading and state changes
+- API integrations and data fetching
+- Responsive design across different screen sizes
+- Professional component libraries and styling systems
+
+🎯 COMPARISON DECISION FACTORS:
+When one submission shows clear technical superiority (modern frameworks, complex architecture, multiple features), it should win even if screenshots are poor quality.
+
+TECHNICAL HIERARCHY (Higher wins unless completely broken):
+- Advanced features (demos, downloads, pagination, state management) > Basic features
+- React/Vue/Angular apps > Vanilla JavaScript > Static HTML
+- Multi-page applications > Single-page forms
+- Database integration > Local storage > No persistence  
+- Custom implementations > Template modifications
+- Interactive features > Static presentations
+- Complex state management > Simple static content
 
 Respond with a JSON object in this exact format:
 {{
@@ -121,7 +185,14 @@ Respond with a JSON object in this exact format:
     }}
 }}
 
-Focus on implementation quality, functionality, design, and how well each submission meets the task requirements. Be forgiving of screenshot artifacts and transitioning frames."""
+🚨 CRITICAL EVALUATION REMINDER:
+- A submission that LOOKS simpler in screenshots may actually be MORE technically advanced
+- Screenshots can be misleading - focus on ANY evidence of technical complexity
+- Advanced features like demos, downloads, pagination, and state management are often not visible in static frames
+- When in doubt between two submissions, favor the one with ANY indicators of advanced technical implementation
+- Don't let poor screenshot quality or timing hide superior technical work
+
+Remember: Be generous with poor screenshots, focus on technical implementation evidence, and reward interactivity indicators like mouse cursors and dynamic states."""
 
     def _make_api_call_with_retry(self, content: List[Dict], max_retries: int = 3) -> Dict:
         """
